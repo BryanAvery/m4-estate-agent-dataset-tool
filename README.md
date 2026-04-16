@@ -60,6 +60,38 @@ Then open `http://localhost:8080`.
 3. Select your default branch and root (`/`) folder.
 4. Save and wait for deployment.
 
+
+## Deploy backend API to Render (FastAPI)
+
+This repo now includes a Render-ready FastAPI app:
+
+- `app.py` - Render web API entrypoint
+- `requirements.txt` - Python dependencies for Render builds
+- `start.sh` - starts Uvicorn on Render's `PORT`
+
+### Render setup
+
+1. Create a **Web Service** in Render from this repository.
+2. Use these commands:
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `bash start.sh`
+3. Set any required environment variables (for example `GOOGLE_MAPS_API_KEY`).
+4. Deploy and test: `https://m4-automation-api.onrender.com/`
+
+### Connect GitHub Pages frontend to Render API
+
+In `index.html`, set your deployed API endpoint before `app.js` loads:
+
+```html
+<script>
+  window.M4_AUTOMATION_API_URL = "https://m4-automation-api.onrender.com/api/automation/run";
+</script>
+<script src="app.js"></script>
+```
+
+If you do not set this variable, the app defaults to the local bridge URL:
+`http://localhost:8787/api/automation/run`.
+
 ## Data storage and privacy
 
 - All records are stored locally in the browser (`localStorage`).
