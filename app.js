@@ -50,6 +50,61 @@ TOWNS TO INCLUDE (ensure broad coverage, but not limited to):
 Also include additional nearby towns within ~15km of the M4.
 Ensure realistic UK coordinates and postcode areas.
 Return ONLY the JSON.`;
+const DEFAULT_AI_RESEARCH_PROMPT = `You are helping to enrich a lead generation dataset for estate agents in the south of England.
+
+Your task is to research the estate agent record provided below and return additional information that may help with business development and outreach.
+
+Important rules:
+1. Do not invent facts.
+2. Only include information that is reasonably supported by the provided record and likely public business information.
+3. If you are unsure, return null.
+4. Mark all new or inferred values as AI-generated.
+5. Keep notes factual, concise, and business-useful.
+6. Return valid JSON only.
+7. Do not include markdown, explanation, or commentary outside the JSON.
+
+Existing record:
+{
+  "business_name": "{{business_name}}",
+  "branch_name": "{{branch_name}}",
+  "location": "{{location}}",
+  "postcode": "{{postcode}}",
+  "phone": "{{phone}}",
+  "email": "{{email}}",
+  "website": "{{website}}",
+  "service_type": "{{service_type}}",
+  "source_url": "{{source_url}}",
+  "notes": "{{notes}}"
+}
+
+Research goals:
+- Identify likely business type: independent, regional chain, national chain, franchise, or unknown
+- Identify likely services offered: sales, lettings, commercial, property management, mortgage advice, land and new homes, or unknown
+- Provide a short business summary
+- Suggest likely target relevance for outreach: high, medium, low
+- Suggest a reason for the relevance score
+- Suggest missing fields that should be researched manually
+- Suggest a cleaned and standardised company name if needed
+
+Return JSON in exactly this structure:
+{
+  "business_name_cleaned": "",
+  "business_type": "",
+  "services_offered": [],
+  "business_summary": "",
+  "outreach_relevance": "",
+  "outreach_reason": "",
+  "manual_research_needed": [],
+  "ai_generated_fields": {
+    "business_name_cleaned": true,
+    "business_type": true,
+    "services_offered": true,
+    "business_summary": true,
+    "outreach_relevance": true,
+    "outreach_reason": true,
+    "manual_research_needed": true
+  }
+}`;
 
 const DEFAULT_TOWNS = [
   'Reading', 'Slough', 'Maidenhead', 'Newbury', 'Swindon', 'Chippenham', 'Bath', 'Bristol'
@@ -103,6 +158,7 @@ const el = {
   townGenMessage: byId('townGenMessage'),
   aiResearchApiKey: byId('aiResearchApiKey'),
   aiResearchModel: byId('aiResearchModel'),
+  aiResearchPrompt: byId('aiResearchPrompt'),
   aiResearchMessage: byId('aiResearchMessage'),
   automationTowns: byId('automationTowns'),
   automationUrls: byId('automationUrls'),
@@ -116,6 +172,7 @@ init();
 function init() {
   if (el.dateCaptured) el.dateCaptured.value = today();
   el.townPrompt.value = DEFAULT_TOWN_PROMPT;
+  if (el.aiResearchPrompt) el.aiResearchPrompt.value = DEFAULT_AI_RESEARCH_PROMPT;
   hydrateTownSelectors();
   hydrateStatusFilter();
   renderTownPills();
@@ -712,6 +769,9 @@ async function runAiResearch(recordId) {
   const explicitAiResearchKey = el.aiResearchApiKey?.value?.trim() || '';
   const fallbackTownGeneratorKey = el.openAiApiKey?.value?.trim() || '';
   let openAiApiKey = explicitAiResearchKey || fallbackTownGeneratorKey;
+  const aiInputRecord = mapRecordToAiInput(record);
+  const promptTemplate = el.aiResearchPrompt?.value?.trim() || DEFAULT_AI_RESEARCH_PROMPT;
+  const prompt = interpolateAiResearchPrompt(promptTemplate, aiInputRecord);
   setAiResearchMessage(`Running AI research for ${record.businessName}…`, false);
 
   try {
@@ -724,7 +784,8 @@ async function runAiResearch(recordId) {
           openAiApiKey,
           openai_api_key: openAiApiKey,
           openaiApiKey: openAiApiKey,
-          record: mapRecordToAiInput(record)
+          record: aiInputRecord,
+          prompt
         })
       });
 
@@ -778,6 +839,30 @@ Please enter your OpenAI API key to continue:`,
   } catch (error) {
     setAiResearchMessage(error instanceof Error ? error.message : 'AI research failed.');
   }
+}
+
+function interpolateAiResearchPrompt(template, inputRecord) {
+  const substitutions = {
+    business_name: inputRecord.business_name,
+    branch_name: inputRecord.branch_name,
+    location: inputRecord.location,
+    postcode: inputRecord.postcode,
+    phone: inputRecord.phone,
+    email: inputRecord.email,
+    website: inputRecord.website,
+    service_type: inputRecord.service_type,
+    source_url: inputRecord.source_url,
+    notes: inputRecord.notes
+  };
+
+  return Object.entries(substitutions).reduce((compiledPrompt, [key, value]) => (
+    compiledPrompt.replaceAll(`{{${key}}}`, escapePromptValue(value))
+  ), template);
+}
+
+function escapePromptValue(value) {
+  if (value === null || value === undefined || value === '') return 'null';
+  return String(value).replaceAll('"', '\\"');
 }
 
 function mapRecordToAiInput(record) {

@@ -49,6 +49,7 @@ class AiEnrichmentRequest(BaseModel):
     record: AiEnrichmentRecord
     model: str = "gpt-5.4-mini"
     openAiApiKey: str | None = None
+    prompt: str | None = None
 
 
 @app.get("/")
@@ -89,31 +90,33 @@ def enrich_record(payload: AiEnrichmentRequest) -> dict:
     model = payload.model.strip() or "gpt-5.4-mini"
     input_record = payload.record.model_dump()
 
-    prompt = (
-        "You are enriching an estate agent dataset record for lead generation.\n\n"
-        "Rules:\n"
-        "- Do not invent facts\n"
-        "- Do not guess exact contact details\n"
-        "- Use null where uncertain\n"
-        "- Return JSON only\n"
-        "- Keep all values concise and database-friendly\n"
-        "- Mark output as AI-generated\n\n"
-        "Input:\n"
-        f"{json.dumps(input_record, ensure_ascii=False)}\n\n"
-        "Output JSON:\n"
-        "{\n"
-        f"  \"record_id\": \"{input_record['id']}\",\n"
-        "  \"business_name_cleaned\": null,\n"
-        "  \"business_type\": null,\n"
-        "  \"services_offered\": [],\n"
-        "  \"business_summary\": null,\n"
-        "  \"outreach_relevance\": null,\n"
-        "  \"outreach_reason\": null,\n"
-        "  \"manual_research_needed\": [],\n"
-        "  \"ai_confidence\": null,\n"
-        "  \"ai_generated\": true\n"
-        "}"
-    )
+    prompt = (payload.prompt or "").strip()
+    if not prompt:
+        prompt = (
+            "You are enriching an estate agent dataset record for lead generation.\n\n"
+            "Rules:\n"
+            "- Do not invent facts\n"
+            "- Do not guess exact contact details\n"
+            "- Use null where uncertain\n"
+            "- Return JSON only\n"
+            "- Keep all values concise and database-friendly\n"
+            "- Mark output as AI-generated\n\n"
+            "Input:\n"
+            f"{json.dumps(input_record, ensure_ascii=False)}\n\n"
+            "Output JSON:\n"
+            "{\n"
+            f"  \"record_id\": \"{input_record['id']}\",\n"
+            "  \"business_name_cleaned\": null,\n"
+            "  \"business_type\": null,\n"
+            "  \"services_offered\": [],\n"
+            "  \"business_summary\": null,\n"
+            "  \"outreach_relevance\": null,\n"
+            "  \"outreach_reason\": null,\n"
+            "  \"manual_research_needed\": [],\n"
+            "  \"ai_confidence\": null,\n"
+            "  \"ai_generated\": true\n"
+            "}"
+        )
 
     try:
         response = requests.post(
