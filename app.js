@@ -139,8 +139,7 @@ const el = {
   notes: byId('notes'),
   cancelEdit: byId('cancelEdit'),
   formMessage: byId('formMessage'),
-  recordsTbody: byId('recordsTbody'),
-  rowTemplate: byId('rowTemplate'),
+  recordsAccordion: byId('recordsAccordion'),
   searchInput: byId('searchInput'),
   filterTown: byId('filterTown'),
   filterService: byId('filterService'),
@@ -290,36 +289,68 @@ function getFilteredRecords() {
 
 function renderRows(records) {
   const duplicateIds = findDuplicateIds();
-  el.recordsTbody.innerHTML = '';
+  el.recordsAccordion.innerHTML = '';
 
   records.forEach((r) => {
-    const row = el.rowTemplate.content.firstElementChild.cloneNode(true);
-    for (const td of row.querySelectorAll('td[data-k]')) {
-      const key = td.dataset.k;
-      let value = r[key] ?? '';
-      if (key === 'services') value = r.services.join(', ');
-      if (key === 'research') value = formatResearchValue(r);
-      if ((key === 'website' || key === 'sourceUrl') && value) {
-        td.innerHTML = `<a href="${escapeHtml(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
-      } else {
-        td.textContent = value;
-      }
-    }
-
+    const item = document.createElement('details');
+    item.className = 'record-item';
+    const summary = document.createElement('summary');
+    summary.className = 'record-summary';
+    summary.textContent = r.businessName || 'Untitled business';
     if (duplicateIds.has(r.id)) {
-      row.firstElementChild.innerHTML += ' <span class="tag-duplicate">(Possible duplicate)</span>';
+      summary.innerHTML += ' <span class="tag-duplicate">(Possible duplicate)</span>';
     }
+    item.appendChild(summary);
 
-    const actions = row.querySelector('.row-actions');
+    const content = document.createElement('div');
+    content.className = 'record-content';
+    content.append(
+      createRecordField('Location', r.location),
+      createRecordField('Postcode', r.postcode),
+      createRecordField('Phone', r.phone),
+      createRecordField('Email', r.email),
+      createRecordField('Website', r.website, true),
+      createRecordField('Services', r.services.join(', ')),
+      createRecordField('Status', r.status),
+      createRecordField('Source', r.sourceUrl, true),
+      createRecordField('Date', r.dateCaptured),
+      createRecordField('Notes', r.notes),
+      createRecordField('Research', formatResearchValue(r))
+    );
+
+    const actions = document.createElement('div');
+    actions.className = 'row-actions';
     const editBtn = actionBtn('Edit', () => startEdit(r));
     const enrichBtn = actionBtn('AI research', () => runAiResearch(r.id));
     const deleteBtn = actionBtn('Delete', () => deleteRecord(r.id));
     actions.append(editBtn);
     actions.append(enrichBtn);
     actions.append(deleteBtn);
+    content.appendChild(actions);
 
-    el.recordsTbody.appendChild(row);
+    item.appendChild(content);
+    el.recordsAccordion.appendChild(item);
   });
+}
+
+function createRecordField(label, value, isLink = false) {
+  const field = document.createElement('p');
+  field.className = 'record-field';
+  const title = document.createElement('strong');
+  title.textContent = `${label}: `;
+  field.appendChild(title);
+
+  if (isLink && value) {
+    const link = document.createElement('a');
+    link.href = value;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = value;
+    field.appendChild(link);
+  } else {
+    field.appendChild(document.createTextNode(value || '—'));
+  }
+  return field;
 }
 
 function renderQualitySummary() {
