@@ -264,6 +264,7 @@ function getFilteredRecords() {
     .filter((r) => {
       if (!q) return true;
       return [r.businessName, r.location, r.postcode, r.website, r.email, r.phone, r.notes]
+        .concat(r.research || '')
         .join(' ')
         .toLowerCase()
         .includes(q);
@@ -285,6 +286,7 @@ function renderRows(records) {
       const key = td.dataset.k;
       let value = r[key] ?? '';
       if (key === 'services') value = r.services.join(', ');
+      if (key === 'research') value = formatResearchValue(r);
       if ((key === 'website' || key === 'sourceUrl') && value) {
         td.innerHTML = `<a href="${escapeHtml(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
       } else {
@@ -446,6 +448,7 @@ function exportCsv() {
     'sourceUrl',
     'dateCaptured',
     'status',
+    'research',
     'businessNameCleaned',
     'businessType',
     'servicesOffered',
@@ -498,20 +501,8 @@ function importCsvText(text) {
   const idx = Object.fromEntries(header.map((h, i) => [h, i]));
   const imported = data
     .filter((r) => r.length)
-    .map((r) => ({
-      id: crypto.randomUUID(),
-      businessName: (r[idx.businessName] || '').trim(),
-      location: (r[idx.location] || '').trim(),
-      postcode: (r[idx.postcode] || '').trim(),
-      phone: (r[idx.phone] || '').trim(),
-      email: (r[idx.email] || '').trim(),
-      website: normalizeUrl((r[idx.website] || '').trim()),
-      services: (r[idx.services] || '').split('|').map((x) => x.trim()).filter(Boolean),
-      notes: (r[idx.notes] || '').trim(),
-      sourceUrl: normalizeUrl((r[idx.sourceUrl] || '').trim()),
-      dateCaptured: (r[idx.dateCaptured] || today()).trim(),
-      status: (r[idx.status] || 'New').trim(),
-      aiResearch: {
+    .map((r) => {
+      const aiResearch = {
         record_id: (r[idx.id] || '').trim() || null,
         business_name_cleaned: (r[idx.businessNameCleaned] || '').trim() || null,
         business_type: (r[idx.businessType] || '').trim() || null,
@@ -522,11 +513,27 @@ function importCsvText(text) {
         manual_research_needed: splitPipeField(r[idx.manualResearchNeeded]),
         ai_confidence: (r[idx.aiConfidence] || '').trim() || null,
         ai_generated: (r[idx.aiGenerated] || '').trim().toLowerCase() === 'true'
-      },
-      aiGenerated: (r[idx.aiGenerated] || '').trim().toLowerCase() === 'true',
-      aiConfidence: (r[idx.aiConfidence] || '').trim() || null,
-      aiLastEnrichedAt: (r[idx.aiLastEnrichedAt] || '').trim() || null
-    }))
+      };
+      return {
+        id: crypto.randomUUID(),
+        businessName: (r[idx.businessName] || '').trim(),
+        location: (r[idx.location] || '').trim(),
+        postcode: (r[idx.postcode] || '').trim(),
+        phone: (r[idx.phone] || '').trim(),
+        email: (r[idx.email] || '').trim(),
+        website: normalizeUrl((r[idx.website] || '').trim()),
+        services: (r[idx.services] || '').split('|').map((x) => x.trim()).filter(Boolean),
+        notes: (r[idx.notes] || '').trim(),
+        research: (r[idx.research] || '').trim() || formatResearchFromAiPayload(aiResearch),
+        sourceUrl: normalizeUrl((r[idx.sourceUrl] || '').trim()),
+        dateCaptured: (r[idx.dateCaptured] || today()).trim(),
+        status: (r[idx.status] || 'New').trim(),
+        aiResearch,
+        aiGenerated: (r[idx.aiGenerated] || '').trim().toLowerCase() === 'true',
+        aiConfidence: (r[idx.aiConfidence] || '').trim() || null,
+        aiLastEnrichedAt: (r[idx.aiLastEnrichedAt] || '').trim() || null
+      };
+    })
     .filter((r) => r.businessName && r.location);
 
   state.records.push(...imported);
@@ -826,6 +833,7 @@ Please enter your OpenAI API key to continue:`,
         ? {
             ...item,
             aiResearch,
+            research: formatResearchFromAiPayload(aiResearch),
             aiGenerated: true,
             aiConfidence: aiResearch?.ai_confidence || null,
             aiLastEnrichedAt: new Date().toISOString()
@@ -883,6 +891,7 @@ function mapRecordToAiInput(record) {
 
 function csvExportValue(record, key) {
   if (key === 'services') return record.services.join('|');
+  if (key === 'research') return record.research || formatResearchFromAiPayload(record.aiResearch);
   if (key === 'servicesOffered') return (record.aiResearch?.services_offered || []).join('|');
   if (key === 'manualResearchNeeded') return (record.aiResearch?.manual_research_needed || []).join('|');
   if (key === 'businessNameCleaned') return record.aiResearch?.business_name_cleaned || '';
@@ -900,6 +909,21 @@ function splitPipeField(value) {
     .split('|')
     .map((x) => x.trim())
     .filter(Boolean);
+}
+
+function formatResearchFromAiPayload(aiResearch) {
+  if (!aiResearch || typeof aiResearch !== 'object') return '';
+  try {
+    return JSON.stringify(aiResearch);
+  } catch {
+    return '';
+  }
+}
+
+function formatResearchValue(record) {
+  const storedResearch = String(record?.research || '').trim();
+  if (storedResearch) return storedResearch;
+  return formatResearchFromAiPayload(record?.aiResearch);
 }
 
 function mapAutomationRecord(record) {
