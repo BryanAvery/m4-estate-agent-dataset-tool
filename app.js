@@ -122,6 +122,7 @@ const state = {
 };
 
 const el = {
+  aiWorkingNotice: byId('aiWorkingNotice'),
   form: byId('recordForm'),
   formTitle: byId('formTitle'),
   recordId: byId('recordId'),
@@ -166,6 +167,8 @@ const el = {
   runAutomationBtn: byId('runAutomationBtn'),
   automationMessage: byId('automationMessage')
 };
+
+let aiWorkingNoticeTimer = null;
 
 init();
 
@@ -647,6 +650,16 @@ function setAiResearchMessage(text, isError = true) {
   el.aiResearchMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }
 
+function showAiWorkingNotice() {
+  if (!el.aiWorkingNotice) return;
+  el.aiWorkingNotice.hidden = false;
+  if (aiWorkingNoticeTimer) clearTimeout(aiWorkingNoticeTimer);
+  aiWorkingNoticeTimer = setTimeout(() => {
+    el.aiWorkingNotice.hidden = true;
+    aiWorkingNoticeTimer = null;
+  }, 5000);
+}
+
 async function copyTownPrompt() {
   try {
     await navigator.clipboard.writeText(el.townPrompt.value);
@@ -665,6 +678,7 @@ async function generateTownJson() {
   if (!model) return setTownMessage('Model is required.');
   if (!prompt) return setTownMessage('Prompt is required.');
 
+  showAiWorkingNotice();
   setTownMessage('Generating town JSON…', false);
   el.generateTownJsonBtn.disabled = true;
 
@@ -779,6 +793,7 @@ async function runAiResearch(recordId) {
   const aiInputRecord = mapRecordToAiInput(record);
   const promptTemplate = el.aiResearchPrompt?.value?.trim() || DEFAULT_AI_RESEARCH_PROMPT;
   const prompt = interpolateAiResearchPrompt(promptTemplate, aiInputRecord);
+  showAiWorkingNotice();
   setAiResearchMessage(`Running AI research for ${record.businessName}…`, false);
 
   try {

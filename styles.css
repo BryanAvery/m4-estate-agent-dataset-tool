@@ -44,6 +44,19 @@ button.secondary { background: #fff; color: var(--text); }
 .actions.inline { margin-top: 0; }
 .actions.inline input { flex: 1 1 220px; }
 .message { min-height: 1.2rem; color: var(--warn); margin: 0.5rem 0 0; }
+.ai-working-notice {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2000;
+  max-width: 360px;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #1d2a3b;
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+  font-size: 0.9rem;
+}
 .toolbar { display: grid; gap: 0.5rem; grid-template-columns: 2fr repeat(5, minmax(120px, 1fr)); align-items: center; }
 .import-label {
   display: inline-flex;
