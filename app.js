@@ -323,34 +323,81 @@ function importCsv(e) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    const rows = parseCsv(String(reader.result));
-    const [header, ...data] = rows;
-    const idx = Object.fromEntries(header.map((h, i) => [h, i]));
-    const imported = data
-      .filter((r) => r.length)
-      .map((r) => ({
-        id: crypto.randomUUID(),
-        businessName: (r[idx.businessName] || '').trim(),
-        location: (r[idx.location] || '').trim(),
-        postcode: (r[idx.postcode] || '').trim(),
-        phone: (r[idx.phone] || '').trim(),
-        email: (r[idx.email] || '').trim(),
-        website: normalizeUrl((r[idx.website] || '').trim()),
-        services: (r[idx.services] || '').split('|').map((x) => x.trim()).filter(Boolean),
-        notes: (r[idx.notes] || '').trim(),
-        sourceUrl: normalizeUrl((r[idx.sourceUrl] || '').trim()),
-        dateCaptured: (r[idx.dateCaptured] || today()).trim(),
-        status: (r[idx.status] || 'New').trim()
-      }))
-      .filter((r) => r.businessName && r.location);
-
-    state.records.push(...imported);
-    persist();
-    render();
-    setFormMessage(`Imported ${imported.length} records.`, false);
-    e.target.value = '';
+    const text = String(reader.result || '');
+    const fileName = file.name.toLowerCase();
+    try {
+      if (fileName.endsWith('.json')) {
+        importJson(text);
+      } else {
+        importCsvText(text);
+      }
+    } catch (error) {
+      setFormMessage(error instanceof Error ? error.message : 'Unable to import file.');
+    } finally {
+      e.target.value = '';
+    }
   };
   reader.readAsText(file);
+}
+
+function importCsvText(text) {
+  const rows = parseCsv(text);
+  const [header, ...data] = rows;
+  const idx = Object.fromEntries(header.map((h, i) => [h, i]));
+  const imported = data
+    .filter((r) => r.length)
+    .map((r) => ({
+      id: crypto.randomUUID(),
+      businessName: (r[idx.businessName] || '').trim(),
+      location: (r[idx.location] || '').trim(),
+      postcode: (r[idx.postcode] || '').trim(),
+      phone: (r[idx.phone] || '').trim(),
+      email: (r[idx.email] || '').trim(),
+      website: normalizeUrl((r[idx.website] || '').trim()),
+      services: (r[idx.services] || '').split('|').map((x) => x.trim()).filter(Boolean),
+      notes: (r[idx.notes] || '').trim(),
+      sourceUrl: normalizeUrl((r[idx.sourceUrl] || '').trim()),
+      dateCaptured: (r[idx.dateCaptured] || today()).trim(),
+      status: (r[idx.status] || 'New').trim()
+    }))
+    .filter((r) => r.businessName && r.location);
+
+  state.records.push(...imported);
+  persist();
+  render();
+  setFormMessage(`Imported ${imported.length} records.`, false);
+}
+
+function importJson(text) {
+  const data = JSON.parse(text);
+  if (!data || !Array.isArray(data.towns)) {
+    throw new Error('JSON must include a "towns" array.');
+  }
+
+  const townNames = data.towns
+    .map((town) => String(town?.name || '').trim())
+    .filter(Boolean);
+
+  if (!townNames.length) {
+    throw new Error('No valid town names were found in the JSON file.');
+  }
+
+  const existing = new Set(state.towns.map(normalize));
+  let added = 0;
+  townNames.forEach((town) => {
+    const normalizedTown = normalize(town);
+    if (!existing.has(normalizedTown)) {
+      state.towns.push(town);
+      existing.add(normalizedTown);
+      added += 1;
+    }
+  });
+
+  state.towns.sort((a, b) => a.localeCompare(b));
+  persist();
+  renderTownPills();
+  hydrateTownSelectors();
+  setFormMessage(`Imported ${townNames.length} towns from JSON (${added} new).`, false);
 }
 
 function parseCsv(text) {
