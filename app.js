@@ -592,6 +592,7 @@ async function runAutomationLayer() {
   const towns = splitLines(el.automationTowns.value);
   const rightmoveUrls = splitLines(el.automationUrls.value);
   const maxResults = Number(el.automationMaxResults.value) || 20;
+  let googleMapsApiKey = '';
 
   if (!towns.length && !rightmoveUrls.length) {
     return setAutomationMessage('Add at least one town or one Rightmove URL.');
@@ -601,19 +602,44 @@ async function runAutomationLayer() {
   el.runAutomationBtn.disabled = true;
 
   try {
-    const response = await fetch(AUTOMATION_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ towns, rightmoveUrls, maxResults })
-    });
+    const runRequest = async () => {
+      const response = await fetch(AUTOMATION_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ towns, rightmoveUrls, maxResults, googleMapsApiKey })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      return { response, payload };
+    };
+
+    let { response, payload } = await runRequest();
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const detail = payload?.error ? ` ${payload.error}` : '';
-      throw new Error(`Automation request failed (${response.status}).${detail}`);
+      const detail = String(payload?.detail || payload?.error || '').trim();
+      const missingGoogleMapsKey = detail.includes('GOOGLE_MAPS_API_KEY is required to pull Google Maps results.');
+
+      if (missingGoogleMapsKey && !googleMapsApiKey) {
+        const enteredKey = window.prompt(
+          `${detail}\n\nPlease enter your Google Maps API key to continue:`,
+          ''
+        );
+        if (enteredKey && enteredKey.trim()) {
+          googleMapsApiKey = enteredKey.trim();
+          setAutomationMessage('Retrying automation with provided Google Maps API key…', false);
+          ({ response, payload } = await runRequest());
+        } else {
+          throw new Error('Google Maps API key was not provided.');
+        }
+      }
     }
 
-    const payload = await response.json();
+    if (!response.ok) {
+      const detail = String(payload?.detail || payload?.error || '').trim();
+      const suffix = detail ? ` ${detail}` : '';
+      throw new Error(`Automation request failed (${response.status}).${suffix}`.trim());
+    }
+
     const importedRecords = (payload?.records || []).map(mapAutomationRecord).filter(Boolean);
     state.records.push(...importedRecords);
     persist();

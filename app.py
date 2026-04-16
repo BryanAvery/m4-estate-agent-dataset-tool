@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +25,7 @@ class AutomationRunRequest(BaseModel):
     towns: list[str] = Field(default_factory=list)
     rightmoveUrls: list[str] = Field(default_factory=list)
     maxResults: int = Field(default=20, ge=1, le=100)
+    googleMapsApiKey: str | None = None
 
 
 @app.get("/")
@@ -42,6 +43,8 @@ def run_automation(payload: AutomationRunRequest) -> dict[str, list[dict]]:
 
     try:
         config = AutomationConfig.from_env()
+        if payload.googleMapsApiKey and payload.googleMapsApiKey.strip():
+            config = replace(config, google_maps_api_key=payload.googleMapsApiKey.strip())
         service = AutomationLayerService(config)
         records = service.collect(
             towns=towns,
