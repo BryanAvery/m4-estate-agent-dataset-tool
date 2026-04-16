@@ -403,11 +403,37 @@ function renderTownPills() {
   state.towns.forEach((town) => {
     const li = document.createElement('li');
     li.className = 'pill';
-    li.innerHTML = `<span>${escapeHtml(town)}</span>`;
+    const label = document.createElement('span');
+    label.className = 'pill-label';
+    label.textContent = town;
+    label.setAttribute('role', 'button');
+    label.tabIndex = 0;
+    label.title = 'Add to Towns (Google Maps)';
+    const addSelectedTown = () => appendTownToAutomationTowns(town);
+    label.addEventListener('click', addSelectedTown);
+    label.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        addSelectedTown();
+      }
+    });
+    li.appendChild(label);
     const btn = actionBtn('×', () => removeTown(town));
     li.appendChild(btn);
     el.townList.appendChild(li);
   });
+}
+
+function appendTownToAutomationTowns(town) {
+  if (!el.automationTowns) return;
+  const existingTowns = splitLines(el.automationTowns.value);
+  if (existingTowns.some((name) => normalize(name) === normalize(town))) {
+    setAutomationMessage(`"${town}" is already in Towns (Google Maps).`, false);
+    return;
+  }
+  existingTowns.push(town);
+  el.automationTowns.value = existingTowns.join('\n');
+  setAutomationMessage(`Added "${town}" to Towns (Google Maps).`, false);
 }
 
 function hydrateTownSelectors() {

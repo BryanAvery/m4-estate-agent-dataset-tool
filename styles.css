@@ -84,6 +84,13 @@ th:last-child { cursor: default; }
   border: 1px solid var(--line);
   background: #f7faff;
 }
+.pill-label {
+  cursor: pointer;
+  outline: none;
+}
+.pill-label:focus-visible {
+  text-decoration: underline;
+}
 .pill button { padding: 0 0.35rem; border-radius: 999px; font-size: 0.8rem; background: #fff; color: var(--text); }
 .summary { color: var(--muted); font-size: 0.9rem; margin: 0.5rem 0; }
 .tag-duplicate { color: var(--danger); font-weight: 600; }
