@@ -165,7 +165,12 @@ const el = {
   automationUrls: byId('automationUrls'),
   automationMaxResults: byId('automationMaxResults'),
   runAutomationBtn: byId('runAutomationBtn'),
-  automationMessage: byId('automationMessage')
+  automationMessage: byId('automationMessage'),
+  jsonEditDialog: byId('jsonEditDialog'),
+  jsonEditForm: byId('jsonEditForm'),
+  jsonEditFields: byId('jsonEditFields'),
+  jsonEditMessage: byId('jsonEditMessage'),
+  cancelJsonEditBtn: byId('cancelJsonEditBtn')
 };
 
 let aiWorkingNoticeTimer = null;
@@ -196,6 +201,8 @@ function wireEvents() {
   el.copyTownPromptBtn.addEventListener('click', copyTownPrompt);
   el.generateTownJsonBtn.addEventListener('click', generateTownJson);
   el.runAutomationBtn.addEventListener('click', runAutomationLayer);
+  if (el.jsonEditForm) el.jsonEditForm.addEventListener('submit', submitJsonEdit);
+  if (el.cancelJsonEditBtn) el.cancelJsonEditBtn.addEventListener('click', closeJsonEditDialog);
   document.querySelectorAll('th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const key = th.dataset.sort;
@@ -205,6 +212,8 @@ function wireEvents() {
     });
   });
 }
+
+let jsonEditRecordId = null;
 
 function onSubmitRecord(e) {
   e.preventDefault();
@@ -364,41 +373,94 @@ function startEdit(record) {
 }
 
 function editRecordAsJson(record) {
-  const editableRecord = {
-    businessName: record.businessName || '',
-    location: record.location || '',
-    postcode: record.postcode || '',
-    phone: record.phone || '',
-    email: record.email || '',
-    website: record.website || '',
-    services: Array.isArray(record.services) ? record.services : [],
-    status: record.status || 'New',
-    sourceUrl: record.sourceUrl || '',
-    dateCaptured: record.dateCaptured || today(),
-    notes: record.notes || ''
-  };
-  const draft = window.prompt(
-    'Edit record JSON and click OK to save.',
-    JSON.stringify(editableRecord, null, 2)
-  );
-  if (draft === null) return;
+  if (!el.jsonEditDialog || !el.jsonEditFields) return;
+  jsonEditRecordId = record.id;
+  el.jsonEditFields.innerHTML = '';
+  el.jsonEditMessage.textContent = '';
 
-  let parsed;
-  try {
-    parsed = JSON.parse(draft);
-  } catch {
-    setFormMessage('Invalid JSON. No changes were saved.');
-    return;
+  Object.entries(record)
+    .filter(([key]) => key !== 'id')
+    .forEach(([key, value]) => {
+      const field = document.createElement('label');
+      field.className = 'json-edit-field';
+      const title = document.createElement('span');
+      title.textContent = key;
+      field.appendChild(title);
+
+      const control = createJsonEditorControl(key, value);
+      field.appendChild(control);
+      el.jsonEditFields.appendChild(field);
+    });
+
+  el.jsonEditDialog.showModal();
+}
+
+function createJsonEditorControl(key, value) {
+  const isComplex = Array.isArray(value) || (value && typeof value === 'object');
+  const prefersTextarea = isComplex || key === 'notes';
+  const input = document.createElement(prefersTextarea ? 'textarea' : 'input');
+  input.name = key;
+  input.dataset.fieldType = detectFieldType(value);
+  if (prefersTextarea) {
+    input.rows = key === 'notes' ? 3 : 5;
+  } else if (typeof value === 'number') {
+    input.type = 'number';
+    input.step = 'any';
+  } else {
+    input.type = 'text';
+  }
+  input.value = serializeFieldValue(value);
+  return input;
+}
+
+function detectFieldType(value) {
+  if (Array.isArray(value)) return 'array';
+  if (value && typeof value === 'object') return 'object';
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') return 'number';
+  if (value === null) return 'null';
+  return 'string';
+}
+
+function serializeFieldValue(value) {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value) || typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
+function closeJsonEditDialog() {
+  if (!el.jsonEditDialog) return;
+  jsonEditRecordId = null;
+  el.jsonEditMessage.textContent = '';
+  el.jsonEditDialog.close();
+}
+
+function submitJsonEdit(event) {
+  event.preventDefault();
+  const existing = state.records.find((record) => record.id === jsonEditRecordId);
+  if (!existing) return closeJsonEditDialog();
+
+  const controls = el.jsonEditFields.querySelectorAll('[name]');
+  const parsedFields = {};
+
+  for (const control of controls) {
+    const { name } = control;
+    const parsed = parseJsonEditorValue(control.value, control.dataset.fieldType);
+    if (parsed.error) {
+      el.jsonEditMessage.textContent = `Invalid value for "${name}": ${parsed.error}`;
+      return;
+    }
+    parsedFields[name] = parsed.value;
   }
 
   const updated = {
-    ...record,
-    ...parsed,
-    website: normalizeUrl(String(parsed.website || '').trim()),
-    sourceUrl: normalizeUrl(String(parsed.sourceUrl || '').trim()),
-    services: Array.isArray(parsed.services)
-      ? parsed.services.map((service) => String(service).trim()).filter(Boolean)
-      : String(parsed.services || '')
+    ...existing,
+    ...parsedFields,
+    website: normalizeUrl(String(parsedFields.website || '').trim()),
+    sourceUrl: normalizeUrl(String(parsedFields.sourceUrl || '').trim()),
+    services: Array.isArray(parsedFields.services)
+      ? parsedFields.services.map((service) => String(service).trim()).filter(Boolean)
+      : String(parsedFields.services || '')
         .split('|')
         .map((service) => service.trim())
         .filter(Boolean)
@@ -406,14 +468,46 @@ function editRecordAsJson(record) {
 
   const err = validateRecord(updated);
   if (err) {
-    setFormMessage(err);
+    el.jsonEditMessage.textContent = err;
     return;
   }
 
-  state.records = state.records.map((r) => (r.id === record.id ? updated : r));
+  state.records = state.records.map((r) => (r.id === jsonEditRecordId ? updated : r));
   persist();
   render();
+  closeJsonEditDialog();
   setFormMessage('Record updated.', false);
+}
+
+function parseJsonEditorValue(rawValue, type) {
+  const value = rawValue.trim();
+  if (type === 'array' || type === 'object') {
+    if (!value) return { value: type === 'array' ? [] : null };
+    try {
+      const parsed = JSON.parse(value);
+      if (type === 'array' && !Array.isArray(parsed)) return { error: 'expected a JSON array.' };
+      if (type === 'object' && (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object')) {
+        return { error: 'expected a JSON object.' };
+      }
+      return { value: parsed };
+    } catch {
+      return { error: 'invalid JSON syntax.' };
+    }
+  }
+  if (type === 'number') {
+    if (!value) return { value: null };
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return { error: 'expected a number.' };
+    return { value: parsed };
+  }
+  if (type === 'boolean') {
+    if (!value) return { value: false };
+    if (value.toLowerCase() === 'true') return { value: true };
+    if (value.toLowerCase() === 'false') return { value: false };
+    return { error: 'use true or false.' };
+  }
+  if (type === 'null') return { value: value ? value : null };
+  return { value };
 }
 
 function resetForm() {

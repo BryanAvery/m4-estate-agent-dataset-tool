@@ -106,6 +106,34 @@ th:last-child { cursor: default; }
 .tag-duplicate { color: var(--danger); font-weight: 600; }
 .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .row-actions button { font-size: 0.8rem; padding: 0.35rem 0.5rem; }
+.json-edit-dialog {
+  width: min(720px, 94vw);
+  max-height: 85vh;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0;
+}
+.json-edit-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+.json-edit-form {
+  padding: 1rem;
+  max-height: 85vh;
+  overflow: auto;
+}
+.json-edit-form h3 {
+  margin: 0 0 0.4rem;
+}
+.json-edit-fields {
+  display: grid;
+  gap: 0.65rem;
+}
+.json-edit-field {
+  gap: 0.3rem;
+}
+.json-edit-field span {
+  font-weight: 600;
+}
 @media (max-width: 900px) {
   .grid, .form-grid, .toolbar { grid-template-columns: 1fr; }
   .full { grid-column: auto; }
