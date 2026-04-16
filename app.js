@@ -563,7 +563,7 @@ async function generateTownJson() {
     const text = extractResponseText(payload);
     const parsed = JSON.parse(text);
     importJson(JSON.stringify(parsed));
-    setTownMessage(`Generated and imported ${parsed?.towns?.length || 0} towns.`, false);
+    setTownMessage(`✅ ChatGPT is working. Generated and imported ${parsed?.towns?.length || 0} towns.`, false);
   } catch (error) {
     setTownMessage(error instanceof Error ? error.message : 'Failed to generate JSON.');
   } finally {
