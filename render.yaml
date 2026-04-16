@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: m4-automation-api
+    runtime: python
+    plan: free
+    region: ohio
+    branch: main
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
