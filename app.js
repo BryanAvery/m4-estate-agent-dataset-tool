@@ -302,8 +302,10 @@ function renderRows(records) {
     }
 
     const actions = row.querySelector('.row-actions');
+    const editBtn = actionBtn('Edit', () => startEdit(r));
     const enrichBtn = actionBtn('AI research', () => runAiResearch(r.id));
     const deleteBtn = actionBtn('Delete', () => deleteRecord(r.id));
+    actions.append(editBtn);
     actions.append(enrichBtn);
     actions.append(deleteBtn);
 
@@ -340,7 +342,10 @@ function findDuplicateIds() {
 }
 
 function startEdit(record) {
-  if (!el.form) return;
+  if (!el.form) {
+    editRecordAsJson(record);
+    return;
+  }
   el.formTitle.textContent = 'Edit Estate Agent';
   el.recordId.value = record.id;
   el.businessName.value = record.businessName;
@@ -356,6 +361,59 @@ function startEdit(record) {
   el.notes.value = record.notes;
   el.cancelEdit.hidden = false;
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function editRecordAsJson(record) {
+  const editableRecord = {
+    businessName: record.businessName || '',
+    location: record.location || '',
+    postcode: record.postcode || '',
+    phone: record.phone || '',
+    email: record.email || '',
+    website: record.website || '',
+    services: Array.isArray(record.services) ? record.services : [],
+    status: record.status || 'New',
+    sourceUrl: record.sourceUrl || '',
+    dateCaptured: record.dateCaptured || today(),
+    notes: record.notes || ''
+  };
+  const draft = window.prompt(
+    'Edit record JSON and click OK to save.',
+    JSON.stringify(editableRecord, null, 2)
+  );
+  if (draft === null) return;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(draft);
+  } catch {
+    setFormMessage('Invalid JSON. No changes were saved.');
+    return;
+  }
+
+  const updated = {
+    ...record,
+    ...parsed,
+    website: normalizeUrl(String(parsed.website || '').trim()),
+    sourceUrl: normalizeUrl(String(parsed.sourceUrl || '').trim()),
+    services: Array.isArray(parsed.services)
+      ? parsed.services.map((service) => String(service).trim()).filter(Boolean)
+      : String(parsed.services || '')
+        .split('|')
+        .map((service) => service.trim())
+        .filter(Boolean)
+  };
+
+  const err = validateRecord(updated);
+  if (err) {
+    setFormMessage(err);
+    return;
+  }
+
+  state.records = state.records.map((r) => (r.id === record.id ? updated : r));
+  persist();
+  render();
+  setFormMessage('Record updated.', false);
 }
 
 function resetForm() {
