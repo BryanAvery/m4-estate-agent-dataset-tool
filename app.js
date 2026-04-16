@@ -56,6 +56,7 @@ const DEFAULT_TOWNS = [
 ];
 
 const STATUSES = ['New', 'Reviewed', 'Contacted', 'Follow-up', 'Not suitable'];
+const AUTOMATION_API_URL = 'http://localhost:8787/api/automation/run';
 
 const state = {
   records: load(STORAGE_KEY, []),
@@ -98,7 +99,12 @@ const el = {
   townPrompt: byId('townPrompt'),
   copyTownPromptBtn: byId('copyTownPromptBtn'),
   generateTownJsonBtn: byId('generateTownJsonBtn'),
-  townGenMessage: byId('townGenMessage')
+  townGenMessage: byId('townGenMessage'),
+  automationTowns: byId('automationTowns'),
+  automationUrls: byId('automationUrls'),
+  automationMaxResults: byId('automationMaxResults'),
+  runAutomationBtn: byId('runAutomationBtn'),
+  automationMessage: byId('automationMessage')
 };
 
 init();
@@ -125,6 +131,7 @@ function wireEvents() {
   el.addTownBtn.addEventListener('click', addTown);
   el.copyTownPromptBtn.addEventListener('click', copyTownPrompt);
   el.generateTownJsonBtn.addEventListener('click', generateTownJson);
+  el.runAutomationBtn.addEventListener('click', runAutomationLayer);
   document.querySelectorAll('th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const key = th.dataset.sort;
@@ -520,6 +527,11 @@ function setTownMessage(text, isError = true) {
   el.townGenMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }
 
+function setAutomationMessage(text, isError = true) {
+  el.automationMessage.textContent = text;
+  el.automationMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
 async function copyTownPrompt() {
   try {
     await navigator.clipboard.writeText(el.townPrompt.value);
@@ -572,6 +584,80 @@ async function generateTownJson() {
   } finally {
     el.generateTownJsonBtn.disabled = false;
   }
+}
+
+async function runAutomationLayer() {
+  const towns = splitLines(el.automationTowns.value);
+  const rightmoveUrls = splitLines(el.automationUrls.value);
+  const maxResults = Number(el.automationMaxResults.value) || 20;
+
+  if (!towns.length && !rightmoveUrls.length) {
+    return setAutomationMessage('Add at least one town or one Rightmove URL.');
+  }
+
+  setAutomationMessage('Running automation layer…', false);
+  el.runAutomationBtn.disabled = true;
+
+  try {
+    const response = await fetch(AUTOMATION_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ towns, rightmoveUrls, maxResults })
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const detail = payload?.error ? ` ${payload.error}` : '';
+      throw new Error(`Automation request failed (${response.status}).${detail}`);
+    }
+
+    const payload = await response.json();
+    const importedRecords = (payload?.records || []).map(mapAutomationRecord).filter(Boolean);
+    state.records.push(...importedRecords);
+    persist();
+    render();
+
+    setAutomationMessage(`Imported ${importedRecords.length} records from automation.`, false);
+  } catch (error) {
+    const extra = 'Start local bridge with: python automation_api.py';
+    const message = error instanceof Error ? error.message : 'Failed to run automation layer.';
+    setAutomationMessage(`${message} ${extra}`);
+  } finally {
+    el.runAutomationBtn.disabled = false;
+  }
+}
+
+function mapAutomationRecord(record) {
+  const businessName = String(record?.business_name || '').trim();
+  const location = String(record?.location || '').trim();
+  if (!businessName || !location) return null;
+
+  const parsedServices = String(record?.services || '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  return {
+    id: crypto.randomUUID(),
+    businessName,
+    location,
+    postcode: String(record?.postcode || '').trim(),
+    phone: String(record?.phone || '').trim(),
+    email: String(record?.email || '').trim(),
+    website: normalizeUrl(String(record?.website || '').trim()),
+    services: parsedServices.length ? parsedServices : ['Sales', 'Lettings'],
+    notes: String(record?.notes || '').trim(),
+    sourceUrl: normalizeUrl(String(record?.source_url || '').trim()),
+    dateCaptured: String(record?.date_captured || today()).trim() || today(),
+    status: STATUSES.includes(record?.status) ? record.status : 'New'
+  };
+}
+
+function splitLines(text) {
+  return String(text || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function extractResponseText(payload) {

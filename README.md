@@ -91,6 +91,7 @@ A lightweight Python automation layer is included to help seed your dataset from
 ### Files
 
 - `run_automation.py` - CLI entrypoint
+- `automation_api.py` - local HTTP bridge for the web UI automation button
 - `automation_layer/service.py` - orchestration + dedupe + CSV writer
 - `automation_layer/providers/google_maps.py` - Google Maps pull
 - `automation_layer/providers/rightmove.py` - Rightmove pull
@@ -124,3 +125,25 @@ python run_automation.py \
 - Respect source terms of service, robots rules, and API usage limits.
 - Rightmove parsing is best-effort and may need adjustment if page structure changes.
 - Records are deduplicated by `(business_name, location)`.
+
+## Running automation from the web page button
+
+The web UI can call the Python automation layer through a small local API bridge.
+
+1. Start the static app:
+
+```bash
+python -m http.server 8080
+```
+
+2. In a second terminal, start the automation API:
+
+```bash
+python automation_api.py
+```
+
+3. Open `http://localhost:8080`, use **Automation Layer Runner**, and click
+   **Run automation + import**.
+
+The browser calls `http://localhost:8787/api/automation/run`, receives records,
+and appends them to the local Dataset table.
