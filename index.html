@@ -101,48 +101,9 @@
           </label>
         </div>
         <div id="qualitySummary" class="summary"></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th data-sort="businessName">Business</th>
-                <th data-sort="location">Location</th>
-                <th data-sort="postcode">Postcode</th>
-                <th data-sort="phone">Phone</th>
-                <th>Email</th>
-                <th>Website</th>
-                <th data-sort="services">Services</th>
-                <th data-sort="status">Status</th>
-                <th>Source</th>
-                <th data-sort="dateCaptured">Date</th>
-                <th>Notes</th>
-                <th>Research</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="recordsTbody"></tbody>
-          </table>
-        </div>
+        <div id="recordsAccordion" class="records-accordion"></div>
       </section>
     </main>
-
-    <template id="rowTemplate">
-      <tr>
-        <td data-k="businessName"></td>
-        <td data-k="location"></td>
-        <td data-k="postcode"></td>
-        <td data-k="phone"></td>
-        <td data-k="email"></td>
-        <td data-k="website"></td>
-        <td data-k="services"></td>
-        <td data-k="status"></td>
-        <td data-k="sourceUrl"></td>
-        <td data-k="dateCaptured"></td>
-        <td data-k="notes"></td>
-        <td data-k="research"></td>
-        <td class="row-actions"></td>
-      </tr>
-    </template>
 
     <dialog id="jsonEditDialog" class="json-edit-dialog">
       <form id="jsonEditForm" method="dialog" class="json-edit-form">
