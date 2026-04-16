@@ -78,6 +78,23 @@ This repo now includes a Render-ready FastAPI app:
 3. Set any required environment variables (for example `GOOGLE_MAPS_API_KEY`).
 4. Deploy and test: `https://m4-automation-api.onrender.com/`
 
+### Render Blueprint (recommended)
+
+This repository includes a `render.yaml` blueprint so Render can be configured
+from code and re-created consistently.
+
+1. In Render, choose **New +** → **Blueprint**.
+2. Select this repository/branch.
+3. Confirm the generated web service settings:
+   - Name: `m4-automation-api`
+   - Region: `Ohio (US East)`
+   - Build command: `pip install -r requirements.txt`
+   - Start command: `bash start.sh`
+   - Health check path: `/`
+4. Add secret values when prompted:
+   - `GOOGLE_MAPS_API_KEY` (required for Google Maps pulls)
+   - `OPENAI_API_KEY` (required for AI enrichment endpoint)
+
 ### Connect GitHub Pages frontend to Render API
 
 In `index.html`, set your deployed API endpoint before `app.js` loads:
