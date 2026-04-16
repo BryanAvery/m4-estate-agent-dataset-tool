@@ -25,6 +25,7 @@ A lightweight single-page app for building a clean, structured dataset of estate
 - Website
 - Services (multi-select)
 - Notes
+- Research (AI enrichment result payload)
 - Source URL
 - Date captured
 - Status
