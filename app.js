@@ -110,7 +110,7 @@ const el = {
 init();
 
 function init() {
-  el.dateCaptured.value = today();
+  if (el.dateCaptured) el.dateCaptured.value = today();
   el.townPrompt.value = DEFAULT_TOWN_PROMPT;
   hydrateTownSelectors();
   hydrateStatusFilter();
@@ -120,8 +120,8 @@ function init() {
 }
 
 function wireEvents() {
-  el.form.addEventListener('submit', onSubmitRecord);
-  el.cancelEdit.addEventListener('click', resetForm);
+  if (el.form) el.form.addEventListener('submit', onSubmitRecord);
+  if (el.cancelEdit) el.cancelEdit.addEventListener('click', resetForm);
   el.searchInput.addEventListener('input', render);
   el.filterTown.addEventListener('change', render);
   el.filterService.addEventListener('change', render);
@@ -236,9 +236,8 @@ function renderRows(records) {
     }
 
     const actions = row.querySelector('.row-actions');
-    const editBtn = actionBtn('Edit', () => startEdit(r));
     const deleteBtn = actionBtn('Delete', () => deleteRecord(r.id));
-    actions.append(editBtn, deleteBtn);
+    actions.append(deleteBtn);
 
     el.recordsTbody.appendChild(row);
   });
@@ -273,6 +272,7 @@ function findDuplicateIds() {
 }
 
 function startEdit(record) {
+  if (!el.form) return;
   el.formTitle.textContent = 'Edit Estate Agent';
   el.recordId.value = record.id;
   el.businessName.value = record.businessName;
@@ -291,6 +291,7 @@ function startEdit(record) {
 }
 
 function resetForm() {
+  if (!el.form) return;
   el.form.reset();
   el.dateCaptured.value = today();
   el.recordId.value = '';
@@ -342,7 +343,7 @@ function renderTownPills() {
 }
 
 function hydrateTownSelectors() {
-  refillSelect(el.location, state.towns, { required: true });
+  if (el.location) refillSelect(el.location, state.towns, { required: true });
   refillSelect(el.filterTown, state.towns, { keepFirst: true });
 }
 
@@ -518,6 +519,7 @@ function actionBtn(label, onClick) {
 }
 
 function setFormMessage(text, isError = true) {
+  if (!el.formMessage) return;
   el.formMessage.textContent = text;
   el.formMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }

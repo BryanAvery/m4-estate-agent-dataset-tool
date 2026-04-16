@@ -15,64 +15,6 @@
 
     <main class="container grid">
       <section class="card">
-        <h2 id="formTitle">Add Estate Agent</h2>
-        <form id="recordForm" novalidate>
-          <input type="hidden" id="recordId" />
-          <div class="form-grid">
-            <label>Business name*
-              <input id="businessName" required />
-            </label>
-            <label>Location (Town)*
-              <select id="location" required></select>
-            </label>
-            <label>Postcode
-              <input id="postcode" />
-            </label>
-            <label>Phone
-              <input id="phone" type="tel" />
-            </label>
-            <label>Email
-              <input id="email" type="email" />
-            </label>
-            <label>Website
-              <input id="website" type="url" placeholder="https://..." />
-            </label>
-            <label>Services
-              <select id="services" multiple size="4">
-                <option value="Sales">Sales</option>
-                <option value="Lettings">Lettings</option>
-                <option value="Commercial">Commercial</option>
-                <option value="Property Management">Property Management</option>
-              </select>
-            </label>
-            <label>Status
-              <select id="status">
-                <option>New</option>
-                <option>Reviewed</option>
-                <option>Contacted</option>
-                <option>Follow-up</option>
-                <option>Not suitable</option>
-              </select>
-            </label>
-            <label>Source URL
-              <input id="sourceUrl" type="url" placeholder="https://..." />
-            </label>
-            <label>Date captured
-              <input id="dateCaptured" type="date" />
-            </label>
-          </div>
-          <label>Notes
-            <textarea id="notes" rows="3"></textarea>
-          </label>
-          <div class="actions">
-            <button type="submit">Save record</button>
-            <button type="button" id="cancelEdit" class="secondary" hidden>Cancel edit</button>
-          </div>
-          <p id="formMessage" class="message" aria-live="polite"></p>
-        </form>
-      </section>
-
-      <section class="card">
         <h2>Target Towns</h2>
         <div class="actions inline">
           <input id="newTown" placeholder="Add town e.g. Slough" />
