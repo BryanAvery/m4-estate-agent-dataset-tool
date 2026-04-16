@@ -56,7 +56,7 @@ const DEFAULT_TOWNS = [
 ];
 
 const STATUSES = ['New', 'Reviewed', 'Contacted', 'Follow-up', 'Not suitable'];
-const AUTOMATION_API_URL = 'http://localhost:8787/api/automation/run';
+const AUTOMATION_API_URL = window.M4_AUTOMATION_API_URL || 'https://m4-automation-api.onrender.com/api/automation/run';
 
 const state = {
   records: load(STORAGE_KEY, []),
