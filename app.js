@@ -709,24 +709,54 @@ async function runAiResearch(recordId) {
   if (!record) return;
 
   const model = el.aiResearchModel?.value?.trim() || 'gpt-5.4-mini';
-  const openAiApiKey = el.aiResearchApiKey?.value?.trim() || '';
+  const explicitAiResearchKey = el.aiResearchApiKey?.value?.trim() || '';
+  const fallbackTownGeneratorKey = el.openAiApiKey?.value?.trim() || '';
+  let openAiApiKey = explicitAiResearchKey || fallbackTownGeneratorKey;
   setAiResearchMessage(`Running AI research for ${record.businessName}…`, false);
 
   try {
-    const response = await fetch(AI_ENRICHMENT_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        openAiApiKey,
-        record: mapRecordToAiInput(record)
-      })
-    });
+    const runRequest = async () => {
+      const response = await fetch(AI_ENRICHMENT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          openAiApiKey,
+          openai_api_key: openAiApiKey,
+          openaiApiKey: openAiApiKey,
+          record: mapRecordToAiInput(record)
+        })
+      });
 
-    const payload = await response.json().catch(() => ({}));
+      const payload = await response.json().catch(() => ({}));
+      return { response, payload };
+    };
+
+    let { response, payload } = await runRequest();
+
     if (!response.ok) {
-      const detail = String(payload?.detail || '').trim();
-      throw new Error(detail || `AI enrichment failed (${response.status}).`);
+      const detail = String(payload?.detail || payload?.error || '').trim();
+      const missingApiKey = /openai[_\s-]*api[_\s-]*key/i.test(detail);
+
+      if (missingApiKey && !openAiApiKey) {
+        const enteredKey = window.prompt(
+          `${detail || 'OPENAI_API_KEY is not configured.'}
+
+Please enter your OpenAI API key to continue:`,
+          ''
+        );
+        if (enteredKey && enteredKey.trim()) {
+          openAiApiKey = enteredKey.trim();
+          if (el.aiResearchApiKey) el.aiResearchApiKey.value = openAiApiKey;
+          setAiResearchMessage('Retrying AI research with provided API key…', false);
+          ({ response, payload } = await runRequest());
+        }
+      }
+
+      if (!response.ok) {
+        const nextDetail = String(payload?.detail || payload?.error || '').trim();
+        throw new Error(nextDetail || `AI enrichment failed (${response.status}).`);
+      }
     }
 
     const aiResearch = payload?.ai_research || {};
