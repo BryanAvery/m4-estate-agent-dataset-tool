@@ -80,3 +80,47 @@ Then open `http://localhost:8080`.
 - Import mapping UI for arbitrary CSVs.
 - Optional backend sync and multi-user support.
 - CRM integrations and enrichment pipeline.
+
+## Automation layer (Google Maps + Rightmove)
+
+A lightweight Python automation layer is included to help seed your dataset from:
+
+- Google Maps Places Text Search API
+- Rightmove search result pages
+
+### Files
+
+- `run_automation.py` - CLI entrypoint
+- `automation_layer/service.py` - orchestration + dedupe + CSV writer
+- `automation_layer/providers/google_maps.py` - Google Maps pull
+- `automation_layer/providers/rightmove.py` - Rightmove pull
+
+### Setup
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install requests beautifulsoup4
+```
+
+Set Google API key (required for `--town`):
+
+```bash
+export GOOGLE_MAPS_API_KEY="your_key_here"
+```
+
+### Example usage
+
+```bash
+python run_automation.py \
+  --town Reading \
+  --town Slough \
+  --rightmove-url "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490" \
+  --output outputs/m4_seed.csv
+```
+
+### Notes
+
+- Respect source terms of service, robots rules, and API usage limits.
+- Rightmove parsing is best-effort and may need adjustment if page structure changes.
+- Records are deduplicated by `(business_name, location)`.
