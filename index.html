@@ -43,6 +43,19 @@
       </section>
 
       <section class="card">
+        <h2>AI Record Research</h2>
+        <p class="hint">Use the row-level <strong>AI research</strong> action to enrich one estate agent at a time with cautious, structured JSON.</p>
+        <label>OpenAI API key (optional if backend has OPENAI_API_KEY)
+          <input id="aiResearchApiKey" type="password" autocomplete="off" placeholder="sk-..." />
+        </label>
+        <label>Model
+          <input id="aiResearchModel" value="gpt-5.4-mini" />
+        </label>
+        <p class="hint">Adds AI-generated research fields. Review before outreach use.</p>
+        <p id="aiResearchMessage" class="message" aria-live="polite"></p>
+      </section>
+
+      <section class="card">
         <h2>Automation Layer Runner</h2>
         <p class="hint">Runs the local Python automation layer and imports Google Maps + Rightmove leads into this dataset.</p>
         <label>Towns (Google Maps)
