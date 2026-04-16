@@ -12,6 +12,8 @@ A lightweight single-page app for building a clean, structured dataset of estate
 - CSV export for Excel/Google Sheets/CRM imports.
 - CSV import (supports records exported by this app).
 - Editable target town list.
+- Built-in M4 town JSON prompt generator.
+- Optional direct OpenAI API call from browser to generate and import towns.
 
 ## Record fields
 
@@ -62,6 +64,7 @@ Then open `http://localhost:8080`.
 
 - All records are stored locally in the browser (`localStorage`).
 - No backend or external data sharing is used by default.
+- OpenAI API keys entered in the UI are used only for the immediate request and are not persisted in `localStorage` or cookies.
 
 ## Limitations
 
@@ -77,4 +80,3 @@ Then open `http://localhost:8080`.
 - Import mapping UI for arbitrary CSVs.
 - Optional backend sync and multi-user support.
 - CRM integrations and enrichment pipeline.
-

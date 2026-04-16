@@ -1,5 +1,55 @@
 const STORAGE_KEY = 'm4_estate_records_v1';
 const TOWNS_KEY = 'm4_towns_v1';
+const DEFAULT_TOWN_PROMPT = `You are a data generation assistant.
+
+Your task is to create a structured JSON dataset of towns and cities located along or near the M4 motorway in England and South Wales (from London to Swansea).
+
+IMPORTANT RULES:
+- Output MUST be valid JSON only (no explanation, no markdown, no comments)
+- Ensure consistent structure across all entries
+- Include at least 25 towns/cities covering the full M4 corridor
+- Use realistic and accurate data where possible
+- If exact data is unknown, estimate sensibly or use null
+- Do NOT invent obviously fake values
+
+JSON STRUCTURE TO FOLLOW EXACTLY:
+
+{
+  "region": "M4 Corridor",
+  "description": "Towns and cities located along or near the M4 motorway in the UK",
+  "towns": [
+    {
+      "name": "string",
+      "county": "string",
+      "country": "England or Wales",
+      "postcode_area": "string",
+      "latitude": number,
+      "longitude": number,
+      "nearest_m4_junction": "string (e.g. J15)",
+      "distance_to_m4_km": number,
+      "population_estimate": number,
+      "is_city": boolean,
+      "key_features": ["string", "string", "string"],
+      "estate_agent_density": null,
+      "average_house_price": null,
+      "growth_score": null,
+      "notes": ""
+    }
+  ],
+  "metadata": {
+    "last_updated": "YYYY-MM-DD",
+    "source": "AI generated",
+    "coverage": "London to South Wales",
+    "version": "1.0"
+  }
+}
+
+TOWNS TO INCLUDE (ensure broad coverage, but not limited to):
+- London (West), Slough, Maidenhead, Reading, Newbury, Swindon, Chippenham, Bath, Bristol, Newport, Cardiff, Bridgend, Port Talbot, Neath, Swansea
+
+Also include additional nearby towns within ~15km of the M4.
+Ensure realistic UK coordinates and postcode areas.
+Return ONLY the JSON.`;
 
 const DEFAULT_TOWNS = [
   'Reading', 'Slough', 'Maidenhead', 'Newbury', 'Swindon', 'Chippenham', 'Bath', 'Bristol'
@@ -42,13 +92,20 @@ const el = {
   qualitySummary: byId('qualitySummary'),
   newTown: byId('newTown'),
   addTownBtn: byId('addTownBtn'),
-  townList: byId('townList')
+  townList: byId('townList'),
+  openAiApiKey: byId('openAiApiKey'),
+  openAiModel: byId('openAiModel'),
+  townPrompt: byId('townPrompt'),
+  copyTownPromptBtn: byId('copyTownPromptBtn'),
+  generateTownJsonBtn: byId('generateTownJsonBtn'),
+  townGenMessage: byId('townGenMessage')
 };
 
 init();
 
 function init() {
   el.dateCaptured.value = today();
+  el.townPrompt.value = DEFAULT_TOWN_PROMPT;
   hydrateTownSelectors();
   hydrateStatusFilter();
   renderTownPills();
@@ -66,6 +123,8 @@ function wireEvents() {
   el.exportCsvBtn.addEventListener('click', exportCsv);
   el.importCsvInput.addEventListener('change', importCsv);
   el.addTownBtn.addEventListener('click', addTown);
+  el.copyTownPromptBtn.addEventListener('click', copyTownPrompt);
+  el.generateTownJsonBtn.addEventListener('click', generateTownJson);
   document.querySelectorAll('th[data-sort]').forEach((th) => {
     th.addEventListener('click', () => {
       const key = th.dataset.sort;
@@ -453,6 +512,77 @@ function actionBtn(label, onClick) {
 function setFormMessage(text, isError = true) {
   el.formMessage.textContent = text;
   el.formMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+function setTownMessage(text, isError = true) {
+  el.townGenMessage.textContent = text;
+  el.townGenMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+async function copyTownPrompt() {
+  try {
+    await navigator.clipboard.writeText(el.townPrompt.value);
+    setTownMessage('Prompt copied.', false);
+  } catch {
+    setTownMessage('Unable to copy prompt. Copy manually from the text area.');
+  }
+}
+
+async function generateTownJson() {
+  const apiKey = el.openAiApiKey.value.trim();
+  const model = el.openAiModel.value.trim();
+  const prompt = el.townPrompt.value.trim();
+
+  if (!apiKey) return setTownMessage('OpenAI API key is required to call the API.');
+  if (!model) return setTownMessage('Model is required.');
+  if (!prompt) return setTownMessage('Prompt is required.');
+
+  setTownMessage('Generating town JSON…', false);
+  el.generateTownJsonBtn.disabled = true;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        input: prompt,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(`OpenAI API error (${response.status}): ${message.slice(0, 300)}`);
+    }
+
+    const payload = await response.json();
+    const text = extractResponseText(payload);
+    const parsed = JSON.parse(text);
+    importJson(JSON.stringify(parsed));
+    setTownMessage(`Generated and imported ${parsed?.towns?.length || 0} towns.`, false);
+  } catch (error) {
+    setTownMessage(error instanceof Error ? error.message : 'Failed to generate JSON.');
+  } finally {
+    el.generateTownJsonBtn.disabled = false;
+  }
+}
+
+function extractResponseText(payload) {
+  if (payload?.output_text) return payload.output_text;
+  const chunks = [];
+  (payload?.output || []).forEach((segment) => {
+    (segment?.content || []).forEach((part) => {
+      if (part?.type === 'output_text' && part?.text) chunks.push(part.text);
+      if (part?.type === 'text' && part?.text) chunks.push(part.text);
+    });
+  });
+  const combined = chunks.join('\n').trim();
+  if (combined) return combined;
+  throw new Error('OpenAI response did not include text output.');
 }
 
 function persist() {
