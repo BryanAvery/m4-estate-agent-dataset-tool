@@ -80,6 +80,25 @@
         <ul id="townList" class="pill-list"></ul>
       </section>
 
+      <section class="card">
+        <h2>M4 Town JSON Generator</h2>
+        <p class="hint">Uses OpenAI API in your browser. API keys are used in-memory only and are never stored in cookies or localStorage.</p>
+        <label>OpenAI API key
+          <input id="openAiApiKey" type="password" autocomplete="off" placeholder="sk-..." />
+        </label>
+        <label>Model
+          <input id="openAiModel" value="gpt-4.1-mini" />
+        </label>
+        <label>Prompt
+          <textarea id="townPrompt" rows="8"></textarea>
+        </label>
+        <div class="actions">
+          <button id="copyTownPromptBtn" type="button" class="secondary">Copy prompt</button>
+          <button id="generateTownJsonBtn" type="button">Generate JSON</button>
+        </div>
+        <p id="townGenMessage" class="message" aria-live="polite"></p>
+      </section>
+
       <section class="card full">
         <h2>Dataset</h2>
         <div class="toolbar">
