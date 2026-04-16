@@ -457,6 +457,7 @@ function importJson(text) {
   renderTownPills();
   hydrateTownSelectors();
   setFormMessage(`Imported ${townNames.length} towns from JSON (${added} new).`, false);
+  return { imported: townNames.length, added };
 }
 
 function parseCsv(text) {
@@ -562,8 +563,10 @@ async function generateTownJson() {
     const payload = await response.json();
     const text = extractResponseText(payload);
     const parsed = JSON.parse(text);
-    importJson(JSON.stringify(parsed));
-    setTownMessage(`✅ ChatGPT is working. Generated and imported ${parsed?.towns?.length || 0} towns.`, false);
+    const importResult = importJson(JSON.stringify(parsed));
+    const message = `M4 Town JSON Generator complete. Imported ${importResult.imported} towns (${importResult.added} new to your list).`;
+    setTownMessage(`✅ ChatGPT is working. Generated and imported ${importResult.imported} towns (${importResult.added} new).`, false);
+    alert(message);
   } catch (error) {
     setTownMessage(error instanceof Error ? error.message : 'Failed to generate JSON.');
   } finally {
