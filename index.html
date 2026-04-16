@@ -144,6 +144,19 @@
       </tr>
     </template>
 
+    <dialog id="jsonEditDialog" class="json-edit-dialog">
+      <form id="jsonEditForm" method="dialog" class="json-edit-form">
+        <h3>Edit Dataset Record</h3>
+        <p class="hint">Update each field below. Arrays and objects accept valid JSON.</p>
+        <div id="jsonEditFields" class="json-edit-fields"></div>
+        <p id="jsonEditMessage" class="message" aria-live="polite"></p>
+        <div class="actions">
+          <button id="saveJsonEditBtn" type="submit">Save</button>
+          <button id="cancelJsonEditBtn" type="button" class="secondary">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="app.js"></script>
   </body>
 </html>
