@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M4 Estate Agent Dataset Tool</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="container">
+      <h1>M4 Estate Agent Dataset Tool</h1>
+      <p class="subtitle">Create, review, de-duplicate, and export estate agent leads.</p>
+    </header>
+
+    <main class="container grid">
+      <section class="card">
+        <h2 id="formTitle">Add Estate Agent</h2>
+        <form id="recordForm" novalidate>
+          <input type="hidden" id="recordId" />
+          <div class="form-grid">
+            <label>Business name*
+              <input id="businessName" required />
+            </label>
+            <label>Location (Town)*
+              <select id="location" required></select>
+            </label>
+            <label>Postcode
+              <input id="postcode" />
+            </label>
+            <label>Phone
+              <input id="phone" type="tel" />
+            </label>
+            <label>Email
+              <input id="email" type="email" />
+            </label>
+            <label>Website
+              <input id="website" type="url" placeholder="https://..." />
+            </label>
+            <label>Services
+              <select id="services" multiple size="4">
+                <option value="Sales">Sales</option>
+                <option value="Lettings">Lettings</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Property Management">Property Management</option>
+              </select>
+            </label>
+            <label>Status
+              <select id="status">
+                <option>New</option>
+                <option>Reviewed</option>
+                <option>Contacted</option>
+                <option>Follow-up</option>
+                <option>Not suitable</option>
+              </select>
+            </label>
+            <label>Source URL
+              <input id="sourceUrl" type="url" placeholder="https://..." />
+            </label>
+            <label>Date captured
+              <input id="dateCaptured" type="date" />
+            </label>
+          </div>
+          <label>Notes
+            <textarea id="notes" rows="3"></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit">Save record</button>
+            <button type="button" id="cancelEdit" class="secondary" hidden>Cancel edit</button>
+          </div>
+          <p id="formMessage" class="message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Target Towns</h2>
+        <div class="actions inline">
+          <input id="newTown" placeholder="Add town e.g. Slough" />
+          <button id="addTownBtn" type="button">Add</button>
+        </div>
+        <ul id="townList" class="pill-list"></ul>
+      </section>
+
+      <section class="card full">
+        <h2>Dataset</h2>
+        <div class="toolbar">
+          <input id="searchInput" placeholder="Search name, postcode, website..." />
+          <select id="filterTown"><option value="">All towns</option></select>
+          <select id="filterService"><option value="">All services</option></select>
+          <select id="filterStatus"><option value="">All statuses</option></select>
+          <button id="exportCsvBtn" type="button">Export CSV</button>
+          <label class="import-label">
+            Import CSV
+            <input id="importCsvInput" type="file" accept=".csv,text/csv" />
+          </label>
+        </div>
+        <div id="qualitySummary" class="summary"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="businessName">Business</th>
+                <th data-sort="location">Location</th>
+                <th data-sort="postcode">Postcode</th>
+                <th data-sort="phone">Phone</th>
+                <th>Email</th>
+                <th>Website</th>
+                <th data-sort="services">Services</th>
+                <th data-sort="status">Status</th>
+                <th>Source</th>
+                <th data-sort="dateCaptured">Date</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <template id="rowTemplate">
+      <tr>
+        <td data-k="businessName"></td>
+        <td data-k="location"></td>
+        <td data-k="postcode"></td>
+        <td data-k="phone"></td>
+        <td data-k="email"></td>
+        <td data-k="website"></td>
+        <td data-k="services"></td>
+        <td data-k="status"></td>
+        <td data-k="sourceUrl"></td>
+        <td data-k="dateCaptured"></td>
+        <td data-k="notes"></td>
+        <td class="row-actions"></td>
+      </tr>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
