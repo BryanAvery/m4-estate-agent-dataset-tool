@@ -100,6 +100,24 @@
         <p id="townGenMessage" class="message" aria-live="polite"></p>
       </section>
 
+      <section class="card">
+        <h2>Automation Layer Runner</h2>
+        <p class="hint">Runs the local Python automation layer and imports Google Maps + Rightmove leads into this dataset.</p>
+        <label>Towns (Google Maps)
+          <textarea id="automationTowns" rows="3" placeholder="Reading&#10;Slough"></textarea>
+        </label>
+        <label>Rightmove search URLs (optional)
+          <textarea id="automationUrls" rows="3" placeholder="https://www.rightmove.co.uk/property-for-sale/find.html?..."></textarea>
+        </label>
+        <label>Max results per town / URL
+          <input id="automationMaxResults" type="number" min="1" max="100" value="20" />
+        </label>
+        <div class="actions">
+          <button id="runAutomationBtn" type="button">Run automation + import</button>
+        </div>
+        <p id="automationMessage" class="message" aria-live="polite"></p>
+      </section>
+
       <section class="card full">
         <h2>Dataset</h2>
         <div class="toolbar">
