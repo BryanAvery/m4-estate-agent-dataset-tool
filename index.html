@@ -46,19 +46,21 @@
       </section>
 
       <section class="card">
-        <h2>AI Record Research</h2>
-        <p class="hint">Use the row-level <strong>AI research</strong> action to enrich one estate agent at a time with cautious, structured JSON.</p>
-        <label>OpenAI API key (optional if backend has OPENAI_API_KEY)
-          <input id="aiResearchApiKey" type="password" autocomplete="off" placeholder="sk-..." />
-        </label>
-        <label>Model
-          <input id="aiResearchModel" value="gpt-5.4-mini" />
-        </label>
-        <label>Prompt (editable)
-          <textarea id="aiResearchPrompt" rows="18"></textarea>
-        </label>
-        <p class="hint">Adds AI-generated research fields. Review before outreach use.</p>
-        <p id="aiResearchMessage" class="message" aria-live="polite"></p>
+        <details class="accordion">
+          <summary><span class="accordion-title">AI Record Research</span></summary>
+          <p class="hint">Use the row-level <strong>AI research</strong> action to enrich one estate agent at a time with cautious, structured JSON.</p>
+          <label>OpenAI API key (optional if backend has OPENAI_API_KEY)
+            <input id="aiResearchApiKey" type="password" autocomplete="off" placeholder="sk-..." />
+          </label>
+          <label>Model
+            <input id="aiResearchModel" value="gpt-5.4-mini" />
+          </label>
+          <label>Prompt (editable)
+            <textarea id="aiResearchPrompt" rows="18"></textarea>
+          </label>
+          <p class="hint">Adds AI-generated research fields. Review before outreach use.</p>
+          <p id="aiResearchMessage" class="message" aria-live="polite"></p>
+        </details>
       </section>
 
       <section class="card">
