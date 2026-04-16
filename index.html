@@ -18,15 +18,6 @@
 
     <main class="container grid">
       <section class="card">
-        <h2>Target Towns</h2>
-        <div class="actions inline">
-          <input id="newTown" placeholder="Add town e.g. Slough" />
-          <button id="addTownBtn" type="button">Add</button>
-        </div>
-        <ul id="townList" class="pill-list"></ul>
-      </section>
-
-      <section class="card">
         <h2>M4 Town JSON Generator</h2>
         <p class="hint">Uses OpenAI API in your browser. API keys are used in-memory only and are never stored in cookies or localStorage.</p>
         <label>OpenAI API key
@@ -43,6 +34,15 @@
           <button id="generateTownJsonBtn" type="button">Generate JSON</button>
         </div>
         <p id="townGenMessage" class="message" aria-live="polite"></p>
+      </section>
+
+      <section class="card">
+        <h2>Target Towns</h2>
+        <div class="actions inline">
+          <input id="newTown" placeholder="Add town e.g. Slough" />
+          <button id="addTownBtn" type="button">Add</button>
+        </div>
+        <ul id="townList" class="pill-list"></ul>
       </section>
 
       <section class="card">
