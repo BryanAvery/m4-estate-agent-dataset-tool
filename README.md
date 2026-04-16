@@ -2,6 +2,13 @@
 
 A lightweight single-page app for building a clean, structured dataset of estate agents along the M4 corridor.
 
+## Introduction
+
+To get the full workflow working (automation + AI enrichment), you will need:
+
+- A ChatGPT/OpenAI API key
+- A Google Maps API key
+
 ## Features
 
 - Add, edit, and delete estate agent records.
