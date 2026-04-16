@@ -85,12 +85,36 @@ In `index.html`, set your deployed API endpoint before `app.js` loads:
 ```html
 <script>
   window.M4_AUTOMATION_API_URL = "https://m4-automation-api.onrender.com/api/automation/run";
+  window.M4_AI_ENRICHMENT_API_URL = "https://m4-automation-api.onrender.com/api/ai/enrich-record";
 </script>
 <script src="app.js"></script>
 ```
 
 If you do not set this variable, the app defaults to the local bridge URL:
 `http://localhost:8787/api/automation/run`.
+
+For AI enrichment, the default endpoint is:
+`https://m4-automation-api.onrender.com/api/ai/enrich-record`.
+
+## AI record enrichment (single-row, structured JSON)
+
+- Use the **AI Record Research** card to configure model/API key.
+- Click **AI research** in any dataset row action to enrich one record at a time.
+- The backend endpoint `/api/ai/enrich-record` returns strict JSON suitable for DB fields:
+  - `business_name_cleaned`
+  - `business_type`
+  - `services_offered`
+  - `business_summary`
+  - `outreach_relevance`
+  - `outreach_reason`
+  - `manual_research_needed`
+  - `ai_confidence`
+  - `ai_generated`
+
+The frontend stores this under `record.aiResearch` and tracks:
+- `aiGenerated`
+- `aiConfidence`
+- `aiLastEnrichedAt`
 
 ## Data storage and privacy
 

@@ -57,6 +57,7 @@ const DEFAULT_TOWNS = [
 
 const STATUSES = ['New', 'Reviewed', 'Contacted', 'Follow-up', 'Not suitable'];
 const AUTOMATION_API_URL = window.M4_AUTOMATION_API_URL || 'https://m4-automation-api.onrender.com/api/automation/run';
+const AI_ENRICHMENT_API_URL = window.M4_AI_ENRICHMENT_API_URL || 'https://m4-automation-api.onrender.com/api/ai/enrich-record';
 
 const state = {
   records: load(STORAGE_KEY, []),
@@ -100,6 +101,9 @@ const el = {
   copyTownPromptBtn: byId('copyTownPromptBtn'),
   generateTownJsonBtn: byId('generateTownJsonBtn'),
   townGenMessage: byId('townGenMessage'),
+  aiResearchApiKey: byId('aiResearchApiKey'),
+  aiResearchModel: byId('aiResearchModel'),
+  aiResearchMessage: byId('aiResearchMessage'),
   automationTowns: byId('automationTowns'),
   automationUrls: byId('automationUrls'),
   automationMaxResults: byId('automationMaxResults'),
@@ -236,7 +240,9 @@ function renderRows(records) {
     }
 
     const actions = row.querySelector('.row-actions');
+    const enrichBtn = actionBtn('AI research', () => runAiResearch(r.id));
     const deleteBtn = actionBtn('Delete', () => deleteRecord(r.id));
+    actions.append(enrichBtn);
     actions.append(deleteBtn);
 
     el.recordsTbody.appendChild(row);
@@ -371,8 +377,30 @@ function refillSelect(select, options, config = {}) {
 }
 
 function exportCsv() {
-  const header = ['businessName', 'location', 'postcode', 'phone', 'email', 'website', 'services', 'notes', 'sourceUrl', 'dateCaptured', 'status'];
-  const rows = state.records.map((r) => header.map((k) => (k === 'services' ? r.services.join('|') : r[k] || '')));
+  const header = [
+    'businessName',
+    'location',
+    'postcode',
+    'phone',
+    'email',
+    'website',
+    'services',
+    'notes',
+    'sourceUrl',
+    'dateCaptured',
+    'status',
+    'businessNameCleaned',
+    'businessType',
+    'servicesOffered',
+    'businessSummary',
+    'outreachRelevance',
+    'outreachReason',
+    'manualResearchNeeded',
+    'aiGenerated',
+    'aiConfidence',
+    'aiLastEnrichedAt'
+  ];
+  const rows = state.records.map((r) => header.map((k) => csvExportValue(r, k)));
   const csv = [header, ...rows]
     .map((row) => row.map(csvCell).join(','))
     .join('\n');
@@ -425,7 +453,22 @@ function importCsvText(text) {
       notes: (r[idx.notes] || '').trim(),
       sourceUrl: normalizeUrl((r[idx.sourceUrl] || '').trim()),
       dateCaptured: (r[idx.dateCaptured] || today()).trim(),
-      status: (r[idx.status] || 'New').trim()
+      status: (r[idx.status] || 'New').trim(),
+      aiResearch: {
+        record_id: (r[idx.id] || '').trim() || null,
+        business_name_cleaned: (r[idx.businessNameCleaned] || '').trim() || null,
+        business_type: (r[idx.businessType] || '').trim() || null,
+        services_offered: splitPipeField(r[idx.servicesOffered]),
+        business_summary: (r[idx.businessSummary] || '').trim() || null,
+        outreach_relevance: (r[idx.outreachRelevance] || '').trim() || null,
+        outreach_reason: (r[idx.outreachReason] || '').trim() || null,
+        manual_research_needed: splitPipeField(r[idx.manualResearchNeeded]),
+        ai_confidence: (r[idx.aiConfidence] || '').trim() || null,
+        ai_generated: (r[idx.aiGenerated] || '').trim().toLowerCase() === 'true'
+      },
+      aiGenerated: (r[idx.aiGenerated] || '').trim().toLowerCase() === 'true',
+      aiConfidence: (r[idx.aiConfidence] || '').trim() || null,
+      aiLastEnrichedAt: (r[idx.aiLastEnrichedAt] || '').trim() || null
     }))
     .filter((r) => r.businessName && r.location);
 
@@ -532,6 +575,12 @@ function setTownMessage(text, isError = true) {
 function setAutomationMessage(text, isError = true) {
   el.automationMessage.textContent = text;
   el.automationMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+function setAiResearchMessage(text, isError = true) {
+  if (!el.aiResearchMessage) return;
+  el.aiResearchMessage.textContent = text;
+  el.aiResearchMessage.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }
 
 async function copyTownPrompt() {
@@ -653,6 +702,89 @@ async function runAutomationLayer() {
   } finally {
     el.runAutomationBtn.disabled = false;
   }
+}
+
+async function runAiResearch(recordId) {
+  const record = state.records.find((item) => item.id === recordId);
+  if (!record) return;
+
+  const model = el.aiResearchModel?.value?.trim() || 'gpt-5.4-mini';
+  const openAiApiKey = el.aiResearchApiKey?.value?.trim() || '';
+  setAiResearchMessage(`Running AI research for ${record.businessName}…`, false);
+
+  try {
+    const response = await fetch(AI_ENRICHMENT_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        openAiApiKey,
+        record: mapRecordToAiInput(record)
+      })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = String(payload?.detail || '').trim();
+      throw new Error(detail || `AI enrichment failed (${response.status}).`);
+    }
+
+    const aiResearch = payload?.ai_research || {};
+    state.records = state.records.map((item) => (
+      item.id === recordId
+        ? {
+            ...item,
+            aiResearch,
+            aiGenerated: true,
+            aiConfidence: aiResearch?.ai_confidence || null,
+            aiLastEnrichedAt: new Date().toISOString()
+          }
+        : item
+    ));
+
+    persist();
+    render();
+    setAiResearchMessage(`AI research saved for ${record.businessName}.`, false);
+  } catch (error) {
+    setAiResearchMessage(error instanceof Error ? error.message : 'AI research failed.');
+  }
+}
+
+function mapRecordToAiInput(record) {
+  return {
+    id: record.id,
+    business_name: record.businessName || null,
+    branch_name: null,
+    location: record.location || null,
+    postcode: record.postcode || null,
+    phone: record.phone || null,
+    email: record.email || null,
+    website: record.website || null,
+    service_type: record.services?.length ? record.services.join(', ') : null,
+    source_url: record.sourceUrl || null,
+    notes: record.notes || null
+  };
+}
+
+function csvExportValue(record, key) {
+  if (key === 'services') return record.services.join('|');
+  if (key === 'servicesOffered') return (record.aiResearch?.services_offered || []).join('|');
+  if (key === 'manualResearchNeeded') return (record.aiResearch?.manual_research_needed || []).join('|');
+  if (key === 'businessNameCleaned') return record.aiResearch?.business_name_cleaned || '';
+  if (key === 'businessType') return record.aiResearch?.business_type || '';
+  if (key === 'businessSummary') return record.aiResearch?.business_summary || '';
+  if (key === 'outreachRelevance') return record.aiResearch?.outreach_relevance || '';
+  if (key === 'outreachReason') return record.aiResearch?.outreach_reason || '';
+  if (key === 'aiConfidence') return record.aiConfidence || record.aiResearch?.ai_confidence || '';
+  if (key === 'aiGenerated') return String(Boolean(record.aiGenerated || record.aiResearch?.ai_generated));
+  return record[key] || '';
+}
+
+function splitPipeField(value) {
+  return String(value || '')
+    .split('|')
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 function mapAutomationRecord(record) {
