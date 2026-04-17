@@ -53,7 +53,7 @@ To get the full workflow working (automation + AI enrichment), you will need:
 
 ## Local development
 
-Open `index.html` directly in your browser, or use a simple static server:
+Open `app/index.html` directly in your browser (or `index.html`, which redirects), or use a simple static server:
 
 ```bash
 python -m http.server 8080
@@ -105,7 +105,7 @@ from code and re-created consistently.
 
 ### Connect GitHub Pages frontend to Render API
 
-In `index.html`, set your deployed API endpoint before `app.js` loads:
+In `app/index.html`, set your deployed API endpoint before `app.js` loads:
 
 ```html
 <script>
